@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Settings, LogOut, Package, BarChart3, Bell } from 'lucide-react';
+import { LayoutDashboard, Users, Settings, LogOut, Package, Bell, ShoppingCart  } from 'lucide-react';
 import { Car } from 'lucide-react';
 
 export default function MainLayout() {
@@ -26,7 +26,7 @@ export default function MainLayout() {
           <NavItem 
             to="/usuarios" 
             icon={<Users size={20} />} 
-            label="Usuarios" 
+            label="Clientes" 
             active={location.pathname === "/usuarios"} 
           />
           <NavItem 
@@ -35,7 +35,19 @@ export default function MainLayout() {
             label="Vehículos" 
             active={location.pathname === "/vehiculos"} 
             />
-          <NavItem to="#" icon={<Settings size={20} />} label="Configuración" />
+          <NavItem 
+            to="/services" 
+            icon={<ShoppingCart size={20} />} 
+            label="servicios"  
+            active={location.pathname === '/services'} 
+          />
+          <NavItem 
+            to="/configuraciones" 
+            icon={<Settings size={20} />} 
+            label="Configuración"  
+            active={location.pathname === '/configuraciones'} 
+            />
+
         </nav>
 
         <div className="p-4 border-t border-slate-800">
