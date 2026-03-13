@@ -1,39 +1,42 @@
 import { useState } from "react";
-import { X, CarFront, Hash, Gauge, User, Tag, ShieldCheck, Loader2, PenSquare } from "lucide-react";
+import { 
+  X, CarFront, Hash, Gauge, User, Tag, ShieldCheck, Loader2, PenSquare, AlertCircle 
+} from "lucide-react";
+import { putVehicle, type UpdateVehicleDTO } from "../../store/CrudVehiculos"; // <-- Importamos función
+import Swal from "sweetalert2";
 
-// Definimos la estructura del vehículo que vamos a editar
 interface VehicleData {
-  id?: number;
+  id: number;
   owner_id: string | number;
   plate_number: string;
   brand: string;
   model: string;
   current_mileage: string | number;
   status: string | number;
+  owner?: any; // Para mostrar el nombre del dueño
 }
 
 interface EditVe {
   onClose: () => void;
-  // Añadimos el vehículo como prop para poder inicializar el formulario
-  vehicle?: VehicleData; 
-  // onUpdated?: () => void; // Para refrescar la tabla después de editar
+  vehicle: VehicleData; 
+  onUpdated: () => void; 
 }
 
-export default function EditModalVehi({ onClose, vehicle }: EditVe) {
+export default function EditModalVehi({ onClose, vehicle, onUpdated }: EditVe) {
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
-  // Inicializamos el formulario con los datos del vehículo que recibimos por props.
-  // Si por alguna razón no llega, usamos valores por defecto vacíos.
-  const [form, setForm] = useState<VehicleData>({
-    owner_id: vehicle?.owner_id || "",
+  // El backend no recibe owner_id al actualizar, así que lo omitimos en el payload de envío
+  const [form, setForm] = useState<UpdateVehicleDTO>({
     plate_number: vehicle?.plate_number || "",
     brand: vehicle?.brand || "",
     model: vehicle?.model || "",
-    current_mileage: vehicle?.current_mileage || "",
-    status: vehicle?.status || "1",
+    current_mileage: vehicle?.current_mileage || 0,
+    status: vehicle?.status !== undefined ? vehicle.status : "1",
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setErrorMsg(null);
     setForm({
       ...form,
       [e.target.name]: e.target.value,
@@ -43,13 +46,44 @@ export default function EditModalVehi({ onClose, vehicle }: EditVe) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setErrorMsg(null);
     
-    // Aquí iría tu llamada a la API con método PUT o PATCH (ej. updateVehicle(vehicle.id, form))
-    setTimeout(() => {
-      console.log("Datos actualizados:", form);
-      setLoading(false);
+    try {
+      await putVehicle(vehicle.id, form);
+
+      // Toast de Éxito
+      const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+        didOpen: (toast) => {
+          toast.addEventListener('mouseenter', Swal.stopTimer)
+          toast.addEventListener('mouseleave', Swal.resumeTimer)
+        }
+      });
+
+      Toast.fire({
+        icon: 'success',
+        title: 'Vehículo actualizado exitosamente',
+        customClass: {
+          popup: 'rounded-xl shadow-lg border border-slate-100',
+        }
+      });
+
+      onUpdated();
       onClose();
-    }, 1000);
+    } catch (error: any) {
+      console.error("Error al actualizar vehículo", error);
+      if (error.response && error.response.status === 422) {
+        setErrorMsg(error.response.data.message || "Verifique los datos (Ej. La placa ya existe).");
+      } else {
+        setErrorMsg("Ocurrió un error inesperado al conectar con el servidor.");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -62,7 +96,6 @@ export default function EditModalVehi({ onClose, vehicle }: EditVe) {
             <div className="flex items-center gap-3">
               <div className="p-2 bg-violet-100 text-violet-600 rounded-lg relative">
                 <CarFront size={20} />
-                {/* Pequeño icono de lápiz superpuesto para indicar edición */}
                 <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm text-violet-600">
                    <PenSquare size={12} />
                 </div>
@@ -81,24 +114,27 @@ export default function EditModalVehi({ onClose, vehicle }: EditVe) {
           </div>
         </div>
 
-        {/* Formulario (Igual al de Crear, pero con los values atados al estado pre-llenado) */}
+        {/* Alerta de Error */}
+        {errorMsg && (
+          <div className="mx-6 mt-4 p-3 bg-rose-50 border border-rose-200 text-rose-600 rounded-xl flex items-start gap-2 animate-in fade-in slide-in-from-top-2">
+            <AlertCircle size={18} className="mt-0.5 shrink-0" />
+            <p className="text-sm font-medium">{errorMsg}</p>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           
+          {/* Dueño del Vehículo (Solo Lectura) */}
           <div className="space-y-1.5">
-            <label className="text-sm font-semibold text-slate-700 ml-1">Dueño del Vehículo *</label>
+            <label className="text-sm font-semibold text-slate-700 ml-1">Dueño del Vehículo (No editable)</label>
             <div className="relative group">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-violet-500 transition-colors" size={18} />
-              <select 
-                name="owner_id" 
-                value={form.owner_id}
-                onChange={handleChange}
-                required
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 outline-none transition-all text-slate-700 appearance-none"
-              >
-                <option value="" disabled>Seleccione un dueño</option>
-                <option value="1">Juan Pérez (ID: 1)</option>
-                <option value="2">María Gómez (ID: 2)</option>
-              </select>
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <input 
+                type="text"
+                value={vehicle.owner?.user?.name || `Propietario ID: ${vehicle.owner_id}`}
+                disabled
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-100/50 border border-slate-200 rounded-xl text-slate-500 cursor-not-allowed"
+              />
             </div>
           </div>
 
@@ -207,7 +243,7 @@ export default function EditModalVehi({ onClose, vehicle }: EditVe) {
               {loading ? (
                 <>
                   <Loader2 className="animate-spin" size={18} />
-                  <span>Actualizando...</span>
+                  <span>Guardando...</span>
                 </>
               ) : (
                 "Guardar Cambios"

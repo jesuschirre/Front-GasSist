@@ -1,14 +1,17 @@
 import { useState } from "react";
+import Swal from "sweetalert2"; // <-- Importamos SweetAlert2
 import type { CreateClientDTO } from "../../store/CrudClientes";
 import { postClients } from "../../store/CrudClientes";
-import { X, User, Phone, Mail, MapPin, UserPlus, Loader2 } from "lucide-react";
+import { 
+  X, User, Phone, Mail, MapPin, UserPlus, Loader2, AlertCircle 
+} from "lucide-react"; // <-- Agregamos AlertCircle
 
-interface EditModalClientsProps {
+interface CreateModalClientsProps {
   onClose: () => void;
   onUpdated: () => void;
 }
 
-export default function CreateModalClients({ onClose, onUpdated }: EditModalClientsProps) {
+export default function CreateModalClients({ onClose, onUpdated }: CreateModalClientsProps) {
   const [form, setForm] = useState<CreateClientDTO>({
     name: "",
     phone: "",
@@ -16,8 +19,10 @@ export default function CreateModalClients({ onClose, onUpdated }: EditModalClie
     address: "",
   });
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null); // <-- Estado para errores
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setErrorMsg(null); // Limpiamos el error al empezar a escribir
     setForm({
       ...form,
       [e.target.name]: e.target.value,
@@ -27,14 +32,43 @@ export default function CreateModalClients({ onClose, onUpdated }: EditModalClie
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setErrorMsg(null);
 
     try {
       await postClients(form);
-      await onUpdated(); // refresca tabla
+      
+      // --- Toast de Éxito con SweetAlert2 ---
+      const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+        didOpen: (toast) => {
+          toast.addEventListener('mouseenter', Swal.stopTimer)
+          toast.addEventListener('mouseleave', Swal.resumeTimer)
+        }
+      });
+
+      Toast.fire({
+        icon: 'success',
+        title: 'Cliente registrado exitosamente',
+        customClass: {
+          popup: 'rounded-xl shadow-lg border border-slate-100',
+        }
+      });
+
+      await onUpdated(); // Refresca tabla
       setForm({ name: "", phone: "", email: "", address: "" });
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error al crear cliente", error);
+      // Capturamos posibles errores 422 de validación de Laravel
+      if (error.response && error.response.status === 422) {
+        setErrorMsg(error.response.data.message || "Verifique los datos ingresados.");
+      } else {
+        setErrorMsg("Ocurrió un error inesperado al conectar con el servidor.");
+      }
     } finally {
       setLoading(false);
     }
@@ -66,13 +100,21 @@ export default function CreateModalClients({ onClose, onUpdated }: EditModalClie
           </div>
         </div>
 
+        {/* Alerta de Error (Se muestra solo si backend falla) */}
+        {errorMsg && (
+          <div className="mx-6 mt-4 p-3 bg-rose-50 border border-rose-200 text-rose-600 rounded-xl flex items-start gap-2 animate-in fade-in slide-in-from-top-2">
+            <AlertCircle size={18} className="mt-0.5 shrink-0" />
+            <p className="text-sm font-medium">{errorMsg}</p>
+          </div>
+        )}
+
         {/* Formulario */}
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           
           <div className="space-y-4">
             {/* Campo Nombre */}
             <div className="space-y-1.5">
-              <label className="text-sm font-semibold text-slate-700 ml-1">Nombre Completo</label>
+              <label className="text-sm font-semibold text-slate-700 ml-1">Nombre Completo *</label>
               <div className="relative group">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-violet-500 transition-colors" size={18} />
                 <input
@@ -92,10 +134,12 @@ export default function CreateModalClients({ onClose, onUpdated }: EditModalClie
               <div className="relative group">
                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-violet-500 transition-colors" size={18} />
                 <input
+                  type="tel"        // <-- Tecla numérica en celulares
+                  maxLength={9}     // <-- Límite exacto de 9 caracteres
                   name="phone"
                   value={form.phone}
                   onChange={handleChange}
-                  placeholder="+51 900 000 000"
+                  placeholder="900100200"
                   className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 outline-none transition-all text-slate-700"
                 />
               </div>

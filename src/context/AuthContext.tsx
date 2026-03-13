@@ -47,16 +47,16 @@ export const AuthContextProvider = ({ children }: AuthContextProviderProps) => {
     useEffect(() => {
         fetchUsuario();
     }, []);
-    
+
     const HandleLogin = async (email: string, password: string) => {
         try {
+            setIsLoading(true)
             const response = await axios.post(
                 `${API_URL}/api/login`,
                 { email, password },
                 { withCredentials: true }
             );
-            
-            // IMPORTANTE: Actualizar el usuario después del login
+
             await fetchUsuario();
             
             Swal.fire({
@@ -67,22 +67,25 @@ export const AuthContextProvider = ({ children }: AuthContextProviderProps) => {
                 showConfirmButton: false
             });
             
-            navigate("/"); // Ruta fija o desde config
+            navigate("/");
             
         } catch (error: any) {
             const errorMessage =
-                error.response?.data?.message || "Error al iniciar sesión";
+                error.response?.data?.message;
             Swal.fire({
                 icon: "error",
                 title: "Error",
                 text: errorMessage,
             });
+        }finally{
+          setIsLoading(false)
         }
     };
 
     // Función de logout agregada
     const HandleLogout = async () => {
         try {
+            setIsLoading(true);
             await axios.post(
                 `${API_URL}/api/logout`,
                 {},
@@ -92,6 +95,8 @@ export const AuthContextProvider = ({ children }: AuthContextProviderProps) => {
             navigate("/login");
         } catch (error: any) {
             console.error("Error al cerrar sesión:", error);
+        }finally{
+            setIsLoading(false);
         }
     };
 

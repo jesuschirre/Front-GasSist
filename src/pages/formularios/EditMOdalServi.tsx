@@ -2,43 +2,30 @@ import { useState } from "react";
 import { 
   X, Gauge, Tag, CarFront, User, Calendar, FileText, AlertCircle, ShieldCheck, Wrench, Loader2, PenSquare
 } from 'lucide-react';
-
-// Definimos la estructura esperada del servicio a editar
-interface ServiceData {
-  id?: number | string;
-  vehicle_id: string | number;
-  client_id: string | number;
-  service_type_id: string | number;
-  service_date: string;
-  mileage_at_service: string | number;
-  status: string | number;
-  details?: {
-    observations?: string;
-    recommendation?: string;
-  };
-}
+import { putService } from "../../store/CrudServices";
+import Swal from "sweetalert2";
 
 interface Editservi {
   onClose: () => void;
-  service?: ServiceData; // Recibimos los datos actuales del servicio
+  onUpdated: () => void;
+  servicio: any; // Recibimos el objeto completo del servicio que pasaste desde la tabla
 }
 
-export default function EditMOdalServi({ onClose, service }: Editservi) {
+export default function EditMOdalServi({ onClose, onUpdated, servicio }: Editservi) {
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
-  // Inicializamos el formulario con los datos del servicio (si existen)
+  // Solo inicializamos los campos que Laravel permite actualizar
   const [form, setForm] = useState({
-    vehicle_id: service?.vehicle_id || "",
-    client_id: service?.client_id || "",
-    service_type_id: service?.service_type_id || "",
-    service_date: service?.service_date || "",
-    mileage_at_service: service?.mileage_at_service || "",
-    status: service?.status?.toString() || "1",
-    observations: service?.details?.observations || "",
-    recommendation: service?.details?.recommendation || "",
+    service_date: servicio?.service_date || "",
+    mileage_at_service: servicio?.mileage_at_service || "",
+    status: servicio?.status?.toString() || "1",
+    observations: servicio?.details?.observations || "",
+    recommendation: servicio?.details?.recommendation || "",
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    setErrorMsg(null);
     setForm({
       ...form,
       [e.target.name]: e.target.value,
@@ -48,12 +35,10 @@ export default function EditMOdalServi({ onClose, service }: Editservi) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setErrorMsg(null);
     
-    // Preparamos el payload con la estructura requerida por Laravel
+    // Preparamos el payload exacto para la actualización
     const payload = {
-      vehicle_id: form.vehicle_id,
-      client_id: form.client_id,
-      service_type_id: form.service_type_id,
       service_date: form.service_date,
       mileage_at_service: Number(form.mileage_at_service),
       status: form.status,
@@ -63,12 +48,41 @@ export default function EditMOdalServi({ onClose, service }: Editservi) {
       }
     };
 
-    // Aquí iría tu llamada PUT/PATCH a la API (ej. updateService(service.id, payload))
-    setTimeout(() => {
-      console.log("Datos actualizados enviados a Laravel:", payload);
-      setLoading(false);
+    try {
+      await putService(servicio.id, payload);
+      
+      const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+        didOpen: (toast) => {
+          toast.addEventListener('mouseenter', Swal.stopTimer)
+          toast.addEventListener('mouseleave', Swal.resumeTimer)
+        }
+      });
+
+      Toast.fire({
+        icon: 'success',
+        title: 'Servicio actualizado exitosamente',
+        customClass: {
+          popup: 'rounded-xl shadow-lg border border-slate-100',
+        }
+      });
+
+      onUpdated();
       onClose();
-    }, 1000);
+    } catch (error: any) {
+      console.error("Error al actualizar servicio", error);
+      if (error.response && error.response.status === 422) {
+        setErrorMsg(error.response.data.message || "Verifique los datos ingresados.");
+      } else {
+        setErrorMsg("Ocurrió un error inesperado al conectar con el servidor.");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -81,14 +95,13 @@ export default function EditMOdalServi({ onClose, service }: Editservi) {
             <div className="flex items-center gap-3">
               <div className="p-2 bg-violet-100 text-violet-600 rounded-lg relative">
                 <Wrench size={20} />
-                {/* Icono indicador de edición */}
                 <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm text-violet-600">
                    <PenSquare size={12} />
                 </div>
               </div>
               <div>
                 <h2 className="text-xl font-semibold text-slate-800 tracking-tight">Editar Servicio</h2>
-                <p className="text-xs text-slate-500 font-medium">Actualiza los datos del mantenimiento</p>
+                <p className="text-xs text-slate-500 font-medium">Actualizando registro #{servicio?.id}</p>
               </div>
             </div>
             <button 
@@ -100,71 +113,64 @@ export default function EditMOdalServi({ onClose, service }: Editservi) {
           </div>
         </div>
 
-        {/* Formulario con scroll interno */}
-        <div className="max-h-[80vh] overflow-y-auto custom-scrollbar">
+        {/* Alerta de Error */}
+        {errorMsg && (
+          <div className="mx-6 mt-4 p-3 bg-rose-50 border border-rose-200 text-rose-600 rounded-xl flex items-start gap-2 animate-in fade-in slide-in-from-top-2">
+            <AlertCircle size={18} className="mt-0.5 shrink-0" />
+            <p className="text-sm font-medium">{errorMsg}</p>
+          </div>
+        )}
+
+        {/* Formulario */}
+        <div className="max-h-[75vh] overflow-y-auto custom-scrollbar">
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
             
             <div className="grid grid-cols-2 gap-4">
-              {/* Vehículo */}
+              {/* Vehículo - Solo Lectura */}
               <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-slate-700 ml-1">Vehículo *</label>
+                <label className="text-sm font-semibold text-slate-700 ml-1">Vehículo (No editable)</label>
                 <div className="relative group">
-                  <CarFront className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-violet-500 transition-colors" size={18} />
-                  <select 
-                    name="vehicle_id" 
-                    value={form.vehicle_id}
-                    onChange={handleChange}
-                    required
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 outline-none transition-all uppercase text-slate-700 appearance-none" 
-                  >
-                    <option value="" disabled className="normal-case">Seleccione vehículo</option>
-                    <option value="1">ABC-123 (ID: 1)</option>
-                    <option value="2">XYZ-789 (ID: 2)</option>
-                  </select>
+                  <CarFront className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                  <input 
+                    type="text"
+                    value={servicio?.vehicle?.plate_number || "Desconocido"}
+                    disabled
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-100/50 border border-slate-200 rounded-xl text-slate-500 cursor-not-allowed font-mono"
+                  />
                 </div>
               </div>
 
-              {/* Cliente */}
+              {/* Cliente - Solo Lectura */}
               <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-slate-700 ml-1">Cliente *</label>
+                <label className="text-sm font-semibold text-slate-700 ml-1">Cliente (No editable)</label>
                 <div className="relative group">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-violet-500 transition-colors" size={18} />
-                  <select 
-                    name="client_id" 
-                    value={form.client_id}
-                    onChange={handleChange}
-                    required
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 outline-none transition-all text-slate-700 appearance-none" 
-                  >
-                    <option value="" disabled>Seleccione un cliente</option>
-                    <option value="1">Juan Pérez</option>
-                    <option value="2">María Gómez</option>
-                  </select>
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                  <input 
+                    type="text"
+                    value={servicio?.client?.user?.name || "Desconocido"}
+                    disabled
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-100/50 border border-slate-200 rounded-xl text-slate-500 cursor-not-allowed truncate"
+                  />
                 </div>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              {/* Tipo de Servicio */}
+              {/* Tipo de Servicio - Solo Lectura */}
               <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-slate-700 ml-1">Tipo de Servicio *</label>
+                <label className="text-sm font-semibold text-slate-700 ml-1">Servicio (No editable)</label>
                 <div className="relative group">
-                  <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-violet-500 transition-colors" size={18} />
-                  <select 
-                    name="service_type_id" 
-                    value={form.service_type_id}
-                    onChange={handleChange}
-                    required
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 outline-none transition-all text-slate-700 appearance-none" 
-                  >
-                    <option value="" disabled>Seleccione servicio</option>
-                    <option value="1">Mantenimiento Preventivo</option>
-                    <option value="2">Reparación de Motor</option>
-                  </select>
+                  <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                  <input 
+                    type="text"
+                    value={servicio?.serviceType?.name || "Desconocido"}
+                    disabled
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-100/50 border border-slate-200 rounded-xl text-slate-500 cursor-not-allowed truncate"
+                  />
                 </div>
               </div>
 
-              {/* Fecha */}
+              {/* Fecha - Editable */}
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700 ml-1">Fecha *</label>
                 <div className="relative group">
@@ -182,9 +188,9 @@ export default function EditMOdalServi({ onClose, service }: Editservi) {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              {/* Kilometraje en Servicio */}
+              {/* Kilometraje - Editable */}
               <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-slate-700 ml-1">Kilometraje Actual *</label>
+                <label className="text-sm font-semibold text-slate-700 ml-1">Kilometraje *</label>
                 <div className="relative group">
                   <Gauge className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-violet-500 transition-colors" size={18} />
                   <input 
@@ -195,13 +201,12 @@ export default function EditMOdalServi({ onClose, service }: Editservi) {
                     required
                     min={0}
                     className="w-full pl-10 pr-12 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 outline-none transition-all placeholder:text-slate-400 text-slate-700" 
-                    placeholder="0" 
                   />
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-sm">km</span>
                 </div>
               </div>
 
-              {/* Estado */}
+              {/* Estado - Editable */}
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700 ml-1">Estado</label>
                 <div className="relative group">
@@ -212,17 +217,17 @@ export default function EditMOdalServi({ onClose, service }: Editservi) {
                     onChange={handleChange}
                     className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 outline-none transition-all text-slate-700 appearance-none"
                   >
-                    <option value="0">Pendiente (0)</option>
-                    <option value="1">En Proceso (1)</option>
-                    <option value="2">Esperando Repuestos (2)</option>
+                    <option value="0">Cancelado (0)</option>
+                    <option value="1">Pendiente (1)</option>
+                    <option value="2">En Proceso (2)</option>
                     <option value="3">Completado (3)</option>
-                    <option value="4">Cancelado (4)</option>
+                    <option value="4">Entregado (4)</option>
                   </select>
                 </div>
               </div>
             </div>
 
-            {/* Observaciones */}
+            {/* Observaciones - Editable */}
             <div className="space-y-1.5">
               <label className="text-sm font-semibold text-slate-700 ml-1">Observaciones</label>
               <div className="relative group">
@@ -233,12 +238,12 @@ export default function EditMOdalServi({ onClose, service }: Editservi) {
                   onChange={handleChange}
                   rows={2}
                   className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 outline-none transition-all placeholder:text-slate-400 text-slate-700 resize-none" 
-                  placeholder="Detalles sobre el estado en el que llegó el vehículo..." 
+                  placeholder="Detalles del mantenimiento..." 
                 />
               </div>
             </div>
 
-            {/* Recomendaciones */}
+            {/* Recomendaciones - Editable */}
             <div className="space-y-1.5">
               <label className="text-sm font-semibold text-slate-700 ml-1">Recomendaciones futuras</label>
               <div className="relative group">

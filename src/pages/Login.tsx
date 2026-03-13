@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { UserAuth } from "../context/AuthContext";
 import Swal from "sweetalert2";
+import { Mail, Lock, Loader2, Package, ArrowRight } from "lucide-react";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -8,92 +9,111 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const { HandleLogin } = UserAuth();
 
-  // ✅ Handler correcto del formulario
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault(); // ✅ Prevenir recarga de página
-  
-      // Validación básica
-      if (!email || !pass) {
-        Swal.fire({
-          icon: "warning",
-          title: "Campos vacíos",
-          text: "Por favor completa todos los campos"
-        });
-        return;
-      }
+    e.preventDefault();
 
-    setIsLoading(false);    
+    if (!email || !pass) {
+      Swal.fire({
+        icon: "warning",
+        title: "Campos vacíos",
+        text: "Por favor completa todos los campos",
+        confirmButtonColor: "#7c3aed",
+        customClass: { popup: 'rounded-2xl', confirmButton: 'rounded-xl' }
+      });
+      return;
+    }
+
+    setIsLoading(true); // ✅ Cambiado a true para que se muestre el botón de carga
+    
     try {
-      await HandleLogin(email, pass); //  Sintaxis correcta
-      // El navigate ya está en HandleLogin, así que no necesitas nada aquí
+      await HandleLogin(email, pass);
     } catch (error) {
       console.error("Error en login:", error);
     } finally {
-      setIsLoading(false); // ✅ Quitar estado de carga
+      setIsLoading(false); 
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-200 p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 relative overflow-hidden p-4">
+      
+      {/* Elementos decorativos de fondo (Estilo Moderno Premium) */}
+      <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-violet-400/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-in fade-in duration-1000"></div>
+      <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-indigo-400/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-in fade-in duration-1000 delay-300"></div>
+      <div className="absolute bottom-[-20%] left-[20%] w-96 h-96 bg-fuchsia-400/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-in fade-in duration-1000 delay-700"></div>
+
+      {/* Tarjeta de Login */}
+      <div className="w-full max-w-105 bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 p-8 md:p-10 relative z-10 animate-in fade-in zoom-in-95 duration-500">
+        
         {/* Encabezado */}
-        <div className="text-center mb-10">
-          <h1 className="text-3xl font-bold text-gray-800">Bienvenido</h1>
-          <p className="text-gray-500 mt-2">Ingresa a tu cuenta para continuar</p>
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center p-3.5 bg-linear-to-tr from-violet-100 to-indigo-50 rounded-2xl mb-5 shadow-inner border border-white">
+            <Package size={36} className="text-violet-600" />
+          </div>
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-800 tracking-tight">Bienvenido de nuevo</h1>
+          <p className="text-slate-500 text-sm mt-2 font-medium">Ingresa a tu panel de administración</p>
         </div>
 
         {/* Formulario */}
-        <form className="space-y-6" onSubmit={handleSubmit}>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+        <form className="space-y-5" onSubmit={handleSubmit}>
+          
+          {/* Email Input */}
+          <div className="space-y-1.5">
+            <label className="text-sm font-semibold text-slate-700 ml-1">
               Correo electrónico
             </label>
-            <input
-              type="email"
-              placeholder="nombre@ejemplo.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
-              disabled={isLoading} //  Deshabilitar durante carga
-              required
-            />
-          </div>
-
-          <div>
-            <div className="flex justify-between mb-1">
-              <label className="text-sm font-medium text-gray-700">Contraseña</label>
-              <a href="#" className="text-sm text-indigo-600 hover:underline">
-                ¿Olvidaste tu contraseña?
-              </a>
+            <div className="relative group">
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-violet-500 transition-colors" size={20} />
+              <input
+                type="email"
+                placeholder="ejemplo@empresa.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full pl-11 pr-4 py-3.5 bg-slate-50/50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 outline-none transition-all text-slate-700 placeholder:text-slate-400 font-medium"
+                disabled={isLoading}
+                required
+              />
             </div>
-            <input
-              type="password"
-              placeholder="••••••••"
-              value={pass}
-              onChange={(e) => setPass(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
-              disabled={isLoading} // ✅ Deshabilitar durante carga
-              required
-            />
           </div>
 
+          {/* Password Input */}
+          <div className="space-y-1.5">
+            <div className="flex justify-between items-center ml-1 mb-1">
+              <label className="text-sm font-semibold text-slate-700">Contraseña</label>
+            </div>
+            <div className="relative group">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-violet-500 transition-colors" size={20} />
+              <input
+                type="password"
+                placeholder="••••••••"
+                value={pass}
+                onChange={(e) => setPass(e.target.value)}
+                className="w-full pl-11 pr-4 py-3.5 bg-slate-50/50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 outline-none transition-all text-slate-700 placeholder:text-slate-400 font-medium tracking-widest"
+                disabled={isLoading}
+                required
+              />
+            </div>
+          </div>
+
+          {/* Botón Submit */}
           <button
             type="submit"
-            disabled={isLoading} // ✅ Deshabilitar durante carga
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg shadow-md hover:shadow-lg transition-all transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isLoading}
+            className="w-full mt-8 bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-violet-200 hover:shadow-xl hover:shadow-violet-200/50 transition-all transform active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {isLoading ? (
-              <span className="flex items-center justify-center gap-2">
-                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
+              <>
+                <Loader2 className="animate-spin" size={20} />
                 Iniciando sesión...
-              </span>
+              </>
             ) : (
-              "Iniciar Sesión"
+              <>
+                Ingresar al Panel
+                <ArrowRight size={20} />
+              </>
             )}
           </button>
+
         </form>
       </div>
     </div>
