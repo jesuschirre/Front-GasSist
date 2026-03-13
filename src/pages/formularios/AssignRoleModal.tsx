@@ -93,7 +93,7 @@ export default function AssignRoleModal({ onClose, onUpdated, user }: AssignRole
             </div>
             <div>
               <h2 className="text-xl font-semibold text-slate-800">Asignar Rol</h2>
-              <p className="text-xs text-slate-500 truncate max-w-[200px]">Usuario: {user.name}</p>
+              <p className="text-xs text-slate-500 truncate `max-w-50">Usuario: {user.name}</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 text-slate-400 hover:bg-slate-200/50 rounded-full">
@@ -118,7 +118,7 @@ export default function AssignRoleModal({ onClose, onUpdated, user }: AssignRole
             <div className="space-y-4">
               <label className="text-sm font-semibold text-slate-700">Selecciona un Rol de Sistema *</label>
               
-              <div className="flex flex-col gap-2 max-h-[250px] overflow-y-auto custom-scrollbar pr-2">
+              <div className="flex flex-col gap-2 max-h-62.5 overflow-y-auto custom-scrollbar pr-2">
                 {roles.length === 0 ? (
                   <p className="text-sm text-slate-500 italic">No hay roles creados en Configuraciones.</p>
                 ) : (
@@ -154,7 +154,7 @@ export default function AssignRoleModal({ onClose, onUpdated, user }: AssignRole
             <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-600 font-semibold rounded-xl hover:bg-slate-50 transition-all">
               Cancelar
             </button>
-            <button type="submit" disabled={saving || !selectedRole || loadingData} className="flex-1 px-4 py-2.5 bg-gradient-to-r from-violet-500 to-violet-500 text-white font-semibold rounded-xl shadow-lg shadow-violet-200 disabled:opacity-70 flex items-center justify-center gap-2">
+            <button type="submit" disabled={saving || !selectedRole || loadingData} className="flex-1 px-4 py-2.5 bg-linear-to-r from-violet-500 to-violet-500 text-white font-semibold rounded-xl shadow-lg shadow-violet-200 disabled:opacity-70 flex items-center justify-center gap-2">
               {saving ? <><Loader2 className="animate-spin" size={18} /> Asignando...</> : "Guardar Rol"}
             </button>
           </div>
